@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Support CRM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Support CRM Dashboard</h1>
+        
+        <!-- Create Ticket Form -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Create New Ticket</h2>
+            <form id="ticketForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="text" id="customer_name" placeholder="Customer Name" required class="border p-2 rounded">
+                <input type="email" id="customer_email" placeholder="Customer Email" required class="border p-2 rounded">
+                <input type="text" id="subject" placeholder="Subject" required class="border p-2 rounded col-span-1 md:col-span-2">
+                <textarea id="description" placeholder="Issue Description" required class="border p-2 rounded col-span-1 md:col-span-2"></textarea>
+                <button type="submit" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 col-span-1 md:col-span-2">Submit Ticket</button>
+            </form>
+        </div>
+
+        <!-- Search & Filter Bar -->
+        <div class="flex flex-col md:flex-row gap-4 mb-6">
+            <input type="text" id="searchInput" placeholder="Search by name, email, ID..." class="border p-2 rounded flex-1 bg-white">
+            <select id="statusFilter" class="border p-2 rounded bg-white">
+                <option value="">All Statuses</option>
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Closed">Closed</option>
+            </select>
+        </div>
+
+        <!-- Tickets List -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-200 text-gray-700">
+                        <th class="p-3">ID</th>
+                        <th class="p-3">Name</th>
+                        <th class="p-3">Subject</th>
+                        <th class="p-3">Status</th>
+                        <th class="p-3">Date</th>
+                    </tr>
+                </thead>
+                <tbody id="ticketTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000/api/tickets";
+
+        async function fetchTickets() {
+            const search = document.getElementById('searchInput').value;
+            const status = document.getElementById('statusFilter').value;
+            let url = API_URL + "?";
+            if (search) url += `search=${encodeURIComponent(search)}&`;
+            if (status) url += `status=${encodeURIComponent(status)}`;
+
+            const res = await fetch(url);
+            const tickets = await res.json();
+            const tbody = document.getElementById('ticketTableBody');
+            tbody.innerHTML = '';
+
+            tickets.forEach(t => {
+                tbody.innerHTML += `
+                    <tr class="border-t hover:bg-gray-50">
+                        <td class="p-3 font-medium text-blue-600">${t.ticket_id}</td>
+                        <td class="p-3">${t.customer_name}</td>
+                        <td class="p-3">${t.subject}</td>
+                        <td class="p-3"><span class="px-2 py-1 rounded text-sm ${t.status === 'Open' ? 'bg-yellow-100 text-yellow-800' : t.status === 'In Progress' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">${t.status}</span></td>
+                        <td class="p-3 text-gray-500">${new Date(t.created_at).toLocaleDateString()}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        document.getElementById('ticketForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                customer_name: document.getElementById('customer_name').value,
+                customer_email: document.getElementById('customer_email').value,
+                subject: document.getElementById('subject').value,
+                description: document.getElementById('description').value
+            };
+
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            document.getElementById('ticketForm').reset();
+            fetchTickets();
+        });
+
+        document.getElementById('searchInput').addEventListener('input', fetchTickets);
+        document.getElementById('statusFilter').addEventListener('change', fetchTickets);
+
+        fetchTickets();
+    </script>
+</body>
+</html>
